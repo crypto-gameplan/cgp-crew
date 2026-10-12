@@ -7,6 +7,10 @@ import { PHASE_WORD } from './strings'
 
 export const PHASES: readonly Phase[] = ['plan', 'design', 'delegate', 'review', 'close']
 
+/** Upper bounds on what a report may carry; the model writes reports, so their sizes are not trusted. */
+export const MAX_TASKS = 100
+const MAX_TITLE = 200
+
 /** What the progress tool receives. Every field is optional: a report changes only what it names. */
 export type Report = {
   title?: string
@@ -32,17 +36,18 @@ const whole = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.round(v)) : undefined
 
 const cleanTasks = (tasks: Report['tasks']): PlannedTask[] =>
-  (tasks ?? []).flatMap(t => {
-    const title = t.title?.trim()
+  (Array.isArray(tasks) ? tasks : []).slice(0, MAX_TASKS * 2).flatMap(t => {
+    const title = typeof t?.title === 'string' ? t.title.trim().slice(0, MAX_TITLE) : ''
     if (!title) return []
-    const after = [...new Set((t.after ?? []).map(whole).filter((x): x is number => !!x))]
-    return [{ title, role: plannedRole(t.role ?? t.tier), after }]
-  })
+    const after = Array.isArray(t.after) ? t.after : []
+    const deps = [...new Set(after.slice(0, MAX_TASKS).map(whole).filter((x): x is number => !!x && x <= MAX_TASKS))]
+    return [{ title, role: plannedRole(typeof (t.role ?? t.tier) === 'string' ? (t.role ?? t.tier) : undefined), after: deps }]
+  }).slice(0, MAX_TASKS)
 
 /** True when `report` starts a new flow: none yet, the last one finished, or a different title. */
 export const startsNewFlow = (prev: Flow | null, report: Report): boolean => {
   if (!prev || prev.isFinished) return true
-  const title = report.title?.trim()
+  const title = typeof report.title === 'string' ? report.title.trim().slice(0, MAX_TITLE) : ''
   return !!title && title !== prev.title
 }
 
@@ -50,13 +55,13 @@ export const startsNewFlow = (prev: Flow | null, report: Report): boolean => {
 export const applyReport = (prev: Flow | null, report: Report): Flow => {
   const base = startsNewFlow(prev, report) || !prev ? emptyFlow() : prev
   const tasks = report.tasks ? cleanTasks(report.tasks) : base.tasks
-  const total = report.tasks ? tasks.length : (whole(report.total) ?? base.total)
+  const total = Math.min(MAX_TASKS, report.tasks ? tasks.length : (whole(report.total) ?? base.total))
   const cap = (x: number) => (total > 0 ? Math.min(total, x) : x)
 
   let accepted = base.accepted
   let done = base.done
   if (report.accepted) {
-    accepted = [...new Set(report.accepted.map(whole).filter((x): x is number => !!x && (total === 0 || x <= total)))].sort((a, b) => a - b)
+    accepted = [...new Set((Array.isArray(report.accepted) ? report.accepted.slice(0, MAX_TASKS * 2) : []).map(whole).filter((x): x is number => !!x && (total === 0 || x <= total)))].sort((a, b) => a - b)
     done = accepted.length
   } else if (report.done !== undefined) {
     done = whole(report.done) ?? done
@@ -69,7 +74,7 @@ export const applyReport = (prev: Flow | null, report: Report): Flow => {
       ? (report.phase as Phase)
       : base.phase
   return {
-    title: report.title?.trim() || base.title,
+    title: (typeof report.title === 'string' ? report.title.trim().slice(0, MAX_TITLE) : '') || base.title,
     phase,
     tasks,
     total,

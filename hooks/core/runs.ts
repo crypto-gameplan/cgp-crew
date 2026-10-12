@@ -96,11 +96,15 @@ export const endRun = (runs: readonly AgentRun[], agentId: string, status: RunSt
 export const endCall = (runs: readonly AgentRun[], toolUseId: string, status: RunStatus, at: number): AgentRun[] =>
   runs.map(r => (r.toolUseId === toolUseId && !r.agentId && r.status === 'running' ? { ...r, status, endedAt: at } : r))
 
-export const setSteps = (runs: readonly AgentRun[], agentId: string, done: number | undefined, total: number | undefined, note: string | undefined): AgentRun[] =>
+const count = (v: unknown, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? Math.min(1000, Math.max(0, Math.round(v))) : fallback
+
+export const setSteps = (runs: readonly AgentRun[], agentId: string, done: unknown, total: unknown, note: unknown): AgentRun[] =>
   update(runs, agentId, r => {
-    const t = Math.max(0, Math.round(total ?? r.steps?.total ?? 0))
-    const d = Math.max(0, Math.round(done ?? r.steps?.done ?? 0))
-    return { ...r, steps: { total: t, done: t > 0 ? Math.min(d, t) : d, note: note?.trim() || undefined } }
+    const t = count(total, r.steps?.total ?? 0)
+    const d = count(done, r.steps?.done ?? 0)
+    const n = typeof note === 'string' ? note.trim().slice(0, 120) : ''
+    return { ...r, steps: { total: t, done: t > 0 ? Math.min(d, t) : d, note: n || undefined } }
   })
 
 /** The engine's view of an agent, as `$.agent.list()` gives it. */

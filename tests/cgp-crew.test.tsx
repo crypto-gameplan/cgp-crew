@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import type { AgentRun } from '../types'
-import { applyReport, runFor, runningCrew, segmentsOf, startsNewFlow, statusLine, upNext } from '../hooks/core/flow'
+import { applyReport, MAX_TASKS, runFor, runningCrew, segmentsOf, startsNewFlow, statusLine, upNext } from '../hooks/core/flow'
 import { durationText, fit, matchKey, measure, tokensText, usdText } from '../hooks/core/format'
 import { costOf, modelLabel, windowOf } from '../hooks/core/models'
 import { colorOf, isCrew, plannedRole, roleOf, symbolOf } from '../hooks/core/roles'
@@ -103,6 +103,27 @@ describe('flow reports', () => {
     expect(matchKey('3) add  csv-writer')).toBe('add csv writer')
     const runs = startRun([], spawn('2. Add CSV writer', 'x'))
     expect(runFor({ title: 'Add CSV writer', role: 'builder', after: [] }, runs)?.key).toBe('x')
+  })
+})
+
+describe('untrusted report sizes', () => {
+  test('huge counts and lists are capped before anything is drawn', () => {
+    const f = applyReport(null, { title: 'x'.repeat(5000), total: 1e12 })
+    expect(f.total).toBe(MAX_TASKS)
+    expect(f.title.length).toBe(200)
+    expect(segmentsOf(f, []).length).toBe(MAX_TASKS)
+    const many = Array.from({ length: 5000 }, (_, i) => ({ title: `t${i}`, role: 'runner', after: [1e9, 2] }))
+    const g = applyReport(null, { title: 'y', tasks: many, accepted: Array.from({ length: 5000 }, (_, i) => i + 1) })
+    expect(g.tasks.length).toBe(MAX_TASKS)
+    expect(g.tasks[0]?.after).toEqual([2])
+    expect(g.done).toBe(MAX_TASKS)
+  })
+
+  test('malformed fields are ignored, not thrown on', () => {
+    const f = applyReport(null, { title: 42, tasks: 'nope', accepted: 'x' } as never)
+    expect(f.tasks).toEqual([])
+    const runs = setSteps(startRun([], spawn('A', 'a')), 'a', 'x', Infinity, { bad: true })
+    expect(runs[0]?.steps).toEqual({ done: 0, total: 0, note: undefined })
   })
 })
 
