@@ -1,6 +1,6 @@
 {
   "name": "cgp-crew",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Give a coding job to /cgp-crew and your session leads five worker agents through it: it plans, designs, briefs and reviews, and the workers write the code. A bar above the prompt and a crew panel show every task and worker. By Crypto Gameplan.",
   "author": {
     "name": "Crypto Gameplan",

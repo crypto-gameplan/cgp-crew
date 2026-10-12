@@ -59,7 +59,39 @@ export type Panel = {
   showFinished: boolean
   /** The flow title the panel last opened itself for, so it opens once per flow. */
   autoOpenedFor: string
+  /** The id of the last host request acted on, so a request is never acted on twice. */
+  handledRequest: number
 }
+
+/** One task of the shared bar: its state and the colour to draw it in. */
+export type FeedSegment = { title: string; color: string; state: 'accepted' | 'delivered' | 'active' | 'trouble' | 'waiting' }
+
+/**
+ * The crew bar, ready to draw, for another plugin that shows it in its own band (cgp-effort). `v` is the format;
+ * a host draws only versions it knows. Null while no flow is shown.
+ */
+export type CrewFeed = {
+  v: 1
+  title: string
+  /** `Reviewing 3/5`, `Building · 2 running`, `Done`. */
+  status: string
+  segments: FeedSegment[]
+  /** Share of accepted tasks, 0 to 1, for a host that draws one bar instead of segments. */
+  share: number
+  /** Workers run plus tasks waiting, for the crew button's label. */
+  crew: number
+  isWorking: boolean
+  isFinished: boolean
+}
+
+/** What cgp-effort publishes when it can show the crew feed in its own band. */
+export type CrewHost = { v: number; draws: boolean }
+
+/**
+ * A press in the host's crew row, for cgp-crew to carry out: `panel` toggles the crew panel, `hide` hides the bar.
+ * `id` grows with every press. (A slash command would wait until the session is idle; this is read every second.)
+ */
+export type CrewRequest = { id: number; action: 'panel' | 'hide' }
 
 declare module 'claude-code' {
   interface PluginState {
@@ -68,6 +100,11 @@ declare module 'claude-code' {
       runs: AgentRun[]
       panel: Panel
       now: number
+      feed: CrewFeed | null
+    }
+    'cgp-effort': {
+      crewHost: CrewHost | null
+      crewRequest: CrewRequest | null
     }
   }
 }

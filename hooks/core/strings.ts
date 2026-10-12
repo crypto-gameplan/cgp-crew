@@ -16,6 +16,7 @@ export const T = {
   workers: 'workers',
   panelOpened: 'Crew panel open.',
   panelClosed: 'Crew panel closed.',
+  barHidden: 'Crew bar hidden. It comes back with the next crew report.',
   noSurface: 'The crew panel needs the terminal or the desktop app.',
 } as const
 

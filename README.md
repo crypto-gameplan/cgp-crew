@@ -50,6 +50,10 @@ Workers report their own steps, so the panel can show "3/5 · escaping quotes" u
 
 Cost is estimated from token counts and the Claude API price list, so treat it as a guide rather than a bill.
 
+## Together with CGP Effort
+
+With [CGP Effort](https://github.com/crypto-gameplan/cgp-effort) 1.1 or later in its Dashboard look, the crew shows in a row of the CGP Effort band instead of a bar of its own, so there is one band above the prompt. The crew button there opens the crew panel and the ✕ hides the row. With CGP Effort set to Minimal, an older CGP Effort, or no CGP Effort at all, the crew draws its own bar as described above.
+
 ## Reliability
 
 The panel checks running workers against Claude Code's own agent list every few seconds. A worker that ended without the panel noticing, or whose process died, is marked as ended instead of showing "running" forever. In a session with no screen, such as `claude -p` or the SDK, the bar and panel stay out of the way and progress reports still succeed.

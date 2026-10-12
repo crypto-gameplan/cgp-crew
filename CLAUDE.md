@@ -18,3 +18,4 @@ Conventions:
 - The role names `architect`, `investigator`, `engineer`, `builder` and `runner` must match across `agents/`, `skills/cgp-crew/SKILL.md`, `core/tools.ts`, `core/roles.ts` and `ui/symbols.ts`.
 - Tool names are `mcp__cgp-crew__progress` and `mcp__cgp-crew__step`. Renaming the plugin renames them.
 - Prices in `core/models.ts` follow the Claude API price list; update them when it changes.
+- Shared bar with cgp-effort: `core/feed.ts` writes `cgp-crew.feed` (format `FEED_VERSION`); cgp-effort answers with `cgp-effort.crewHost` and passes presses back through `cgp-effort.crewRequest`. Change the feed shape only together with a new version.

@@ -7,6 +7,7 @@ import { costOf, modelLabel, windowOf } from '../hooks/core/models'
 import { colorOf, isCrew, plannedRole, roleOf, symbolOf } from '../hooks/core/roles'
 import { addRequest, endCall, endRun, LIST_GRACE_MS, reconcile, RUN_LIMIT, setSteps, startRun, statusOfTurn, totalsOf } from '../hooks/core/runs'
 import { ACCENT } from '../hooks/core/palette'
+import { FEED_VERSION, feedOf, hostDraws, newRequest, sameFeed } from '../hooks/core/feed'
 import { bandSvg } from '../hooks/ui/band'
 import { mark, symbol } from '../hooks/ui/symbols'
 
@@ -225,6 +226,43 @@ describe('models and formatting', () => {
   })
 })
 
+describe('shared bar feed', () => {
+  test('no flow, no feed; a flow becomes a ready-to-draw feed', () => {
+    expect(feedOf(null, [])).toBe(null)
+    const f = applyReport(null, { title: 'CSV', phase: 'delegate', tasks: [{ title: 'one', role: 'engineer' }, { title: 'two', role: 'other' }] })
+    const runs = startRun([], spawn('one', 'a', 'cgp-crew:crew-engineer'))
+    const feed = feedOf(f, runs)
+    expect(feed?.v).toBe(FEED_VERSION)
+    expect(feed?.status).toBe('Building 0/2')
+    expect(feed?.segments.map(x => x.state)).toEqual(['active', 'waiting'])
+    expect(feed?.segments[0]?.color).toBe(colorOf('engineer'))
+    expect(feed?.segments[1]?.color).toBe(ACCENT)
+    expect(feed?.crew).toBe(2)
+    expect(feed?.isWorking).toBe(true)
+  })
+
+  test('only a host that draws this feed version silences the own bar', () => {
+    expect(hostDraws(null)).toBe(false)
+    expect(hostDraws({ v: FEED_VERSION, draws: false })).toBe(false)
+    expect(hostDraws({ v: FEED_VERSION + 1, draws: true })).toBe(false)
+    expect(hostDraws({ v: FEED_VERSION, draws: true })).toBe(true)
+  })
+
+  test('host requests are acted on once, newest first, and only when well formed', () => {
+    expect(newRequest(null, 0)).toBe(null)
+    expect(newRequest({ id: 3, action: 'panel' }, 2)?.action).toBe('panel')
+    expect(newRequest({ id: 3, action: 'panel' }, 3)).toBe(null)
+    expect(newRequest({ id: 4, action: 'delete' } as never, 0)).toBe(null)
+    expect(newRequest({ id: 1.5, action: 'hide' }, 0)).toBe(null)
+  })
+
+  test('unchanged feeds compare equal, so they are not written again', () => {
+    const f = applyReport(null, { title: 'A', total: 2 })
+    expect(sameFeed(feedOf(f, []), feedOf(f, []))).toBe(true)
+    expect(sameFeed(feedOf(f, []), feedOf(applyReport(f, { done: 1 }), []))).toBe(false)
+  })
+})
+
 describe('drawing', () => {
   test('every role, Explore and unknown agents draw a tile in their colour', () => {
     for (const role of ['architect', 'investigator', 'engineer', 'builder', 'runner', 'explore', 'other']) {
@@ -252,7 +290,7 @@ describe('drawing', () => {
 
 // Nothing sits beneath the plugin in a test: these stand for the engine's own answers.
 const engineBottom = (on: On) => {
-  on('tool.call', async e => ({ result: `engine ran ${String(e.tool)}` }) as never)
+  on('tool.call', async ($, e) => ({ result: `engine ran ${String(e.tool)}` }) as never)
   on('ui.render', async ($, e) => {
     const { Box } = $.ui.resolve(e)
     return <Box key="engine" />
@@ -302,6 +340,22 @@ describe('in the engine', () => {
     engineBottom(on)
     const res = await $.tool.call({ tool: 'mcp__cgp-crew__step', done: 1, total: 3 } as never)
     expect(JSON.stringify(res)).toContain('only crew workers')
+  })
+
+  test('a report publishes the feed; hide clears flow and feed', async ($, on) => {
+    const feeds: unknown[] = []
+    on('state.set', async ($, e, next) => {
+      const w = e as unknown as { plugin: string; key: string; value: unknown }
+      if (w.plugin === 'cgp-crew' && w.key === 'feed') feeds.push(w.value)
+      return next(e)
+    })
+    engineBottom(on)
+    await $.tool.call({ tool: 'mcp__cgp-crew__progress', title: 'Feed', tasks: [{ title: 'one', role: 'runner' }] } as never)
+    const last = feeds.at(-1) as { title: string; segments: unknown[] } | undefined
+    expect(last?.title).toBe('Feed')
+    expect(last?.segments.length).toBe(1)
+    await $.command.run({ command: 'crew-panel', args: 'hide' } as never)
+    expect(feeds.at(-1)).toBe(null)
   })
 
   test('dismissing the bar clears the flow', async ($, on) => {
