@@ -63,7 +63,7 @@ export function bandTree(d: BandDraw) {
   if (d.isDesktop && d.Svg) {
     const Svg = d.Svg
     // About 8 CSS px per column, less the two buttons and their gaps.
-    const width = Math.max(200, Math.min(1600, (d.columns || 100) * 8 - 110))
+    const width = Math.max(200, Math.min(1600, (d.columns || 100) * 8 - 190))
     return (
       <Box flexDirection="row" alignItems="center" gap={1}>
         <Svg source={bandSvg(flow, runs, width)} alt={`${flow.title}: ${status}`} width={width} height={ROW_H} />

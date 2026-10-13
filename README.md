@@ -4,6 +4,8 @@ A Claude Code plugin by [Crypto Gameplan](https://github.com/crypto-gameplan). Y
 
 While the crew works, a bar above the prompt shows the plan as one segment per task, and a panel lists every worker with its model, progress, context use, cost and time.
 
+How everything works, in detail: [docs/GUIDE.md](docs/GUIDE.md). The same as a PDF is attached to every release ([latest](https://github.com/crypto-gameplan/cgp-crew/releases/latest/download/CGP-Crew-Guide.pdf)). In Claude Code you can also just ask, for example "which role gets which task?": the plugin brings a skill that answers from the guide.
+
 ## Install
 
 CGP Crew is listed in the Crypto Gameplan marketplace ([crypto-gameplan/cgp-marketplace](https://github.com/crypto-gameplan/cgp-marketplace)). In Claude Code, run:

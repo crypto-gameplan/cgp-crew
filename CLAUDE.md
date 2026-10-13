@@ -19,3 +19,8 @@ Conventions:
 - Tool names are `mcp__cgp-crew__progress` and `mcp__cgp-crew__step`. Renaming the plugin renames them.
 - Prices in `core/models.ts` follow the Claude API price list; update them when it changes.
 - Shared bar with cgp-effort: `core/feed.ts` writes `cgp-crew.feed` (format `FEED_VERSION`); cgp-effort answers with `cgp-effort.crewHost` and passes presses back through `cgp-effort.crewRequest`. Change the feed shape only together with a new version.
+
+Guide:
+- `docs/GUIDE.md` is the reference the `cgp-crew-help` skill answers from. Change it with every change a user can see.
+- On a version bump, run `node tools/sync-version.mjs docs/GUIDE.md .claude-plugin/plugin.json` so its version line follows.
+- The PDF is built from `../cgp-crew-docs/guide/guide.html` with the cgp-guide skill and attached to the GitHub release as `CGP-Crew-Guide.pdf`.
